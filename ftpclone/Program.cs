@@ -31,6 +31,23 @@ namespace ftpclone
                 if (s.StartsWith("sdl=")) sub_dir_level = int.Parse( s.Split('=')[1]);
                 if (s.StartsWith("filestartwith=")) filestartwith = s.Split('=')[1];
             }
+            FileInfo info =new  FileInfo("config.txt");
+            if (info.Exists)
+            {
+                Console.WriteLine("load config");
+                string[] lines = System.IO.File.ReadAllLines(@"config.txt");
+                foreach (string s in lines)
+                {
+                    if (s.StartsWith("ip=")) ftpServerIP = s.Split('=')[1];
+                    if (s.StartsWith("u=")) ftpUserID = s.Split('=')[1];
+                    if (s.StartsWith("p=")) ftpPassword = s.Split('=')[1];
+                    if (s.StartsWith("r=")) remoteDir = s.Split('=')[1];
+                    if (s.StartsWith("l=")) localDestnDir = s.Split('=')[1];
+                    if (s.StartsWith("opts=")) opts = s.Split('=')[1];
+                    if (s.StartsWith("sdl=")) sub_dir_level = int.Parse(s.Split('=')[1]);
+                    if (s.StartsWith("filestartwith=")) filestartwith = s.Split('=')[1];
+                }
+            }
             Console.WriteLine("ip={0};\n u={1}\n p={2}\n r={3};remotedir\n l={4};localdir\n sdl={5}\n;ite_sub_dir:1;opts={6};ls md cp\n filestartwith={7}",
                 ftpServerIP,ftpUserID,ftpPassword,remoteDir,localDestnDir,opts, sub_dir_level,opts,filestartwith);
             Console.WriteLine("press any key..");
