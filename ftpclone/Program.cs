@@ -13,10 +13,13 @@ namespace ftpclone
         private static string ftpUserID = "usr";
         private static string ftpPassword = "pwd";
         private static String remoteDir = @"/";
-        private static String localDestnDir = "d:\temp";
+        private static String localDestnDir = @"d:/temp";
         private static String opts = "ls"; //ls //cp //md
         private static int  sub_dir_level = 1; //0 1
-        private static string filestartwith = "1617_3_";
+        private static string filestartwith = "";
+        private static string debugmode = "0";
+        private static bool bare_ = false;
+        private static NetworkCredential _credential = null;
 
         static void Main(string[] args)
         {
@@ -30,11 +33,13 @@ namespace ftpclone
                 if (s.StartsWith("opts=")) opts = s.Split('=')[1];
                 if (s.StartsWith("sdl=")) sub_dir_level = int.Parse( s.Split('=')[1]);
                 if (s.StartsWith("filestartwith=")) filestartwith = s.Split('=')[1];
+                if (s.StartsWith("debugmode=")) debugmode = s.Split('=')[1];
+                if (s.StartsWith("bare=")) { if( s.Split('=')[1].Equals("t")) bare_=true; }
             }
             FileInfo info =new  FileInfo("config.txt");
             if (info.Exists)
             {
-                Console.WriteLine("load config");
+                Console.WriteLine("Config Args:");
                 string[] lines = System.IO.File.ReadAllLines(@"config.txt");
                 foreach (string s in lines)
                 {
@@ -46,22 +51,29 @@ namespace ftpclone
                     if (s.StartsWith("opts=")) opts = s.Split('=')[1];
                     if (s.StartsWith("sdl=")) sub_dir_level = int.Parse(s.Split('=')[1]);
                     if (s.StartsWith("filestartwith=")) filestartwith = s.Split('=')[1];
+                    if (s.StartsWith("debugmode=")) debugmode = s.Split('=')[1];
+                    if (s.StartsWith("bare=")) { if (s.Split('=')[1].Equals("t")) bare_ = true; }
                 }
             }
-            Console.WriteLine("ip={0};\n u={1}\n p={2}\n r={3};remotedir\n l={4};localdir\n sdl={5}\n;ite_sub_dir:1;opts={6};ls md cp\n filestartwith={7}",
-                ftpServerIP,ftpUserID,ftpPassword,remoteDir,localDestnDir,opts, sub_dir_level,opts,filestartwith);
-            Console.WriteLine("press any key..");
-            Console.ReadLine();
+            Console.WriteLine("ip\t={0};\n u\t={1}\n p\t={2}\n r\t={3}\n l\t={4}\n sdl\t={5}\n opts\t={6}\n filestartwith\t={7}\n debugmode\t={8}",
+                ftpServerIP,
+                ftpUserID,
+                ftpPassword,
+                remoteDir,
+                localDestnDir,
+                opts, 
+                sub_dir_level,
+                filestartwith,
+                debugmode);
+
             _credential=new NetworkCredential(ftpUserID, ftpPassword);
             IteDir(remoteDir);
             Console.ReadLine();
         }
-        
-        private static NetworkCredential _credential = null;
         static void IteDir(string pathname)
         {
             if (pathname.EndsWith(@"./")) return; 
-            Console.WriteLine(pathname);
+            if(bare_) Console.WriteLine(pathname);
             // Get the object used to communicate with the server.
             try
             {
@@ -79,13 +91,20 @@ namespace ftpclone
                     Stream responseStream = response.GetResponseStream();
                     StreamReader reader = new StreamReader(responseStream);
                     string temp__ = reader.ReadToEnd();
-                    //Console.WriteLine(temp__);
+                    
+                    if (debugmode.Equals("1"))
+                    {
+                        Console.WriteLine("=================");
+                        Console.WriteLine(temp__);
+                        Console.WriteLine("=================");
+                    }
                     String[] dirfile_List = temp__.Split('\r');
                     int i = 0;
                     int default_split_index = 56;
                     while (i < dirfile_List.Length)
                     {
                         String s = dirfile_List[i].Trim();
+                        if(s.Equals("")) { i++; continue; }
                         if (s.StartsWith("total")) { i++; continue; }
                         if (i<3 && s.Length<56 && s.Substring(45).Trim().Equals(".")) default_split_index = 45;
                         if ((i + 1) < dirfile_List.Length)
@@ -115,20 +134,23 @@ namespace ftpclone
                         }
                         i++;
                     }
-                    Console.WriteLine("rem List Complete count{1}, status {0} ",response.StatusDescription,i);
+                    if (bare_) Console.WriteLine("rem List Complete count{1}, status {0} ",response.StatusDescription,i);
                     reader.Close();
                     response.Close();
                 }
                 foreach (string s in files)
                 {
-
-                    if (!filestartwith.Equals(""))
+                    if (filestartwith.Length>0)
                     {
                         if (s.Length > filestartwith.Length && s.StartsWith(filestartwith)) Console.WriteLine("rem " + s);
                     }
                     else if (opts.Equals("ls"))
                     {
                         Console.WriteLine("rem " + s);
+                    }
+                    else if (opts.Equals("cp"))
+                    {
+                        Console.WriteLine("download " +pathname + s);
                     }
                 }
                 foreach (string s in dirs)
@@ -138,7 +160,6 @@ namespace ftpclone
                     if (sub_dir_level > 0) {
                         IteDir(temp);
                     }
-                    
                 }
             }
             catch (Exception ex)
